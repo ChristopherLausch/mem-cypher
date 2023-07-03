@@ -95,11 +95,12 @@ object CypherMapOps {
     }
 
     def nest(header: RecordHeader): CypherMap = {
-      val values = header.internalHeader.fields.map { field =>
+      val values = header.fieldsAsVar.map { field =>
         field.name -> nestField(map, field, header)
       }.toSeq
 
       CypherMap(values: _*)
+      //CypherMap()
     }
 
     private def nestField(row: CypherMap, field: Var, header: RecordHeader): CypherValue = {
