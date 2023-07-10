@@ -54,7 +54,8 @@ object CypherMapOps {
         case Labels(innerExpr) =>
           logger.info(s"Labels: `$innerExpr` in: $map")
           val node = Var(innerExpr.columnName)(CTNode)
-          val labelExprs = header.labels(node)
+          //ToDo check if correct: Upgrade to 0.1.5
+          val labelExprs = header.labelsFor(node)
           val labelNames = labelExprs.map(_.label.name)
           val labelColumns = labelExprs.map(evaluate)
           labelNames
@@ -83,6 +84,7 @@ object CypherMapOps {
           logger.info(s"GreaterThan: `$expr` in: $map")
           evaluate(lhs) > evaluate(rhs)
 
+          //ToDo Upgrade to 0.1.5 check why TrueLit and FalseLit are not found -> they are case objects in Expr.scala
         case _: TrueLit =>
           true
 
@@ -95,9 +97,22 @@ object CypherMapOps {
     }
 
     def nest(header: RecordHeader): CypherMap = {
+      //ToDo check which function to use to get the fields
+      // old function call to get the fields:
+      // def fieldsAsVar: Set[Var] = internalHeader.fields
+      //
+      /*
+      val values = header.nodesForType[Var]().map { field =>
+        field.name -> nestField(map, field, header)
+      }.toSeq
+      */
+      // old version
       val values = header.fieldsAsVar.map { field =>
         field.name -> nestField(map, field, header)
       }.toSeq
+
+      /*
+       */
 
       CypherMap(values: _*)
       //CypherMap()

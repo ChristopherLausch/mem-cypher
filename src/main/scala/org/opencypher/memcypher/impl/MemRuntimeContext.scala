@@ -25,6 +25,7 @@ object MemRuntimeContext {
 case class MemRuntimeContext(
   parameters: CypherMap,
   resolve: QualifiedGraphName => Option[MemCypherGraph]
+  //ToDo Upgrade to 0.1.5 runtimeContext also needs a FlatRelationalTable now
 ) extends RuntimeContext[MemRecords, MemCypherGraph]
 
 

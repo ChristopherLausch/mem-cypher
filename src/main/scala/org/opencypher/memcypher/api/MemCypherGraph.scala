@@ -87,6 +87,7 @@ case class MemCypherGraph(
       labelNodeMap.filterKeys(nodeCypherType.labels.subsetOf).values.reduce(_ ++ _)
     }
     val filteredSchema = schemaForNodes(filteredNodes)
+    //ToDo Upgrade 0.1.5 check if the whole schema idea can be changed, because it seems to no longer exist in the okapi RecordHeader
     val targetHeader = RecordHeader.nodeFromSchema(node, filteredSchema)
     val flattenedNodes = filteredNodes.map(flattenNode(_, targetHeader))
 
@@ -116,7 +117,11 @@ case class MemCypherGraph(
   }
 
   private def flattenNode(node: MemNode, targetHeader: RecordHeader): CypherMap = {
+    //ToDo Upgrade 0.1.5 get Slots from Header
+    // old function def slots: IndexedSeq[RecordSlot] = internalHeader.slots
     targetHeader.slots.foldLeft(CypherMap.empty) {
+      //ToDo Upgrade 0.1.5 check if something like the old SlotContent exists
+      // if not, ?
       case (currentMap, slot) => slot.content match {
         case _ : OpaqueField => currentMap.updated(slot.columnName, node.id)
         case ProjectedExpr(HasLabel(_, label)) => currentMap.updated(slot.columnName, node.labels.contains(label.name))

@@ -21,6 +21,7 @@ case class MemPhysicalResult(
   records: MemRecords,
   workingGraph: MemCypherGraph,
   workingGraphName: QualifiedGraphName)
+//ToDo Upgrade 0.1.5 PhysicalResult also needs a FlatRelationalTable now
   extends PhysicalResult[MemRecords, MemCypherGraph] {
 
   /**

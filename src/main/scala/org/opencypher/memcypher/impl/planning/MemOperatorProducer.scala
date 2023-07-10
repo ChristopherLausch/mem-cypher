@@ -42,8 +42,10 @@ object MemPhysicalPlannerContext {
 }
 
 class MemOperatorProducer(implicit memCypher: MemCypherSession)
+//ToDo Upgrade 0.1.5 PhysicalOperatorProducer also needs a FlatRelationalTable now
   extends PhysicalOperatorProducer[MemOperator, MemRecords, MemCypherGraph, MemRuntimeContext] {
 
+  //ToDo Upgrade 0.1.5 check if fixed after the extends is correct
   override def planStart(
     qgnOpt: Option[QualifiedGraphName] = None,
     in: Option[MemRecords] = None): MemOperator = Start(qgnOpt.getOrElse(memCypher.emptyGraphQgn), in)
