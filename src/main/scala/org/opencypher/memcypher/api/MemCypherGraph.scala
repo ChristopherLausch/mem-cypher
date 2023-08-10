@@ -15,7 +15,7 @@ package org.opencypher.memcypher.api
 
 import org.opencypher.memcypher.api
 import org.opencypher.memcypher.api.value.{MemNode, MemRelationship}
-import org.opencypher.okapi.api.graph.PropertyGraph
+import org.opencypher.okapi.api.graph.{CypherResult, PropertyGraph}
 import org.opencypher.okapi.api.schema.Schema
 import org.opencypher.okapi.api.types.CypherType._
 import org.opencypher.okapi.api.types.{CTNode, CTRelationship}
@@ -23,6 +23,7 @@ import org.opencypher.okapi.api.value.CypherValue.{CypherMap, CypherNull}
 import org.opencypher.okapi.ir.api.expr._
 import org.opencypher.okapi.relational.impl.table.{OpaqueField, ProjectedExpr, RecordHeader}
 import org.opencypher.memcypher.impl.table.RecordHeaderUtils._
+import org.opencypher.okapi.api.table.CypherRecords
 import org.opencypher.okapi.impl.exception.IllegalArgumentException
 
 object MemCypherGraph {
@@ -140,4 +141,8 @@ case class MemCypherGraph(
   }
 
   override def unionAll(others: PropertyGraph*): PropertyGraph = ???
+
+  override def cypher(query: String, parameters: CypherMap, drivingTable: Option[CypherRecords]): CypherResult = super.cypher(query, parameters, drivingTable)
+
+  def cypher_with_defaults(query: String): CypherResult = super.cypher(query)
 }

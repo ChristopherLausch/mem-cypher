@@ -25,7 +25,7 @@
     <plugin.maven-compiler.version>3.7.0</plugin.maven-compiler.version>
     <plugin.maven-license.version>3.0</plugin.maven-license.version>
     <plugin.maven-scala.version>3.3.1</plugin.maven-scala.version>
-    <plugin.maven-scalatest.version>2.0.0</plugin.maven-scalatest.version>
+    <plugin.maven-scalatest.version>2.0.2</plugin.maven-scalatest.version>
 
     <!-- Dependencies -->
     <dep.logback.version>1.2.3</dep.logback.version>

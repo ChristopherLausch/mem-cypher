@@ -41,7 +41,9 @@ final case class Join(
   joinType: JoinType) extends BinaryOperator {
 
   override def executeBinary(left: MemPhysicalResult, right: MemPhysicalResult)(implicit context: MemRuntimeContext): MemPhysicalResult = {
-    if (joinExprs.length > 1) throw NotImplementedException("Multi-way join support")
+    if (joinExprs != null) {
+      if (joinExprs.length > 1) throw NotImplementedException("Multi-way join support")
+    }
 
     val (leftExpr, rightExpr) = joinExprs.head
     val leftId = leftExpr match {

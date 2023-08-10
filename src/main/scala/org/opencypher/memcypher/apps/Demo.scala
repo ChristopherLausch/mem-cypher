@@ -40,7 +40,12 @@ object Demo extends App {
   val graph = MemCypherGraph.create(DemoData.nodes, DemoData.rels)
 
   graph.cypher(query).show
-}
+
+  val result = graph.cypher_with_defaults(query)
+
+  val test = "test"
+
+  }
 
 object DemoData {
 
