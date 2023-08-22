@@ -1,0 +1,279 @@
+{
+  "nodes" : [ {
+      "id" : 0,
+      "labels" : ["Person", "Moderator"],
+      "properties" : {
+        "name": "Alice",
+        "gender": "f",
+        "city": "Leipzig",
+        "age": 20
+      }
+    },
+    {
+      "id" : 1,
+      "labels" : ["Person"],
+      "properties" : {
+        "name": "Bob",
+        "gender": "m",
+        "city": "Leipzig",
+        "age": 30
+      }
+    },
+    {
+      "id" : 2,
+      "labels" : ["Person"],
+      "properties" : {
+        "name": "Carol",
+        "gender": "f",
+        "city": "Dresden",
+        "age": 30
+      }
+    },
+    {
+      "id" : 3,
+      "labels" : ["Person", "Moderator"],
+      "properties" : {
+        "name": "Dave",
+        "gender": "m",
+        "city": "Dresden",
+        "age": 40
+      }
+    },
+    {
+      "id": 4,
+      "labels": ["Person"],
+      "properties": {
+        "name": "Eve",
+        "gender": "f",
+        "city": "Dresden",
+        "speaks": "English",
+        "age": 35
+      }
+    },
+    {
+      "id" : 5,
+      "labels" : ["Person"],
+      "properties" : {
+        "name": "Frank",
+        "gender": "m",
+        "city": "Berlin",
+        "LocIP": "127.0.0.1",
+        "age": 42
+      }
+    },
+    {
+      "id": 6,
+      "labels": ["Tag"],
+      "properties": {
+        "name": "Databases"
+      }
+    },
+    {
+      "id": 7,
+      "labels": ["Tag"],
+      "properties": {
+        "name": "Graphs"
+      }
+    },
+    {
+      "id": 8,
+      "labels": ["Tag"],
+      "properties": {
+        "name": "Hadoop"
+      }
+    },
+    {
+      "id": 9,
+      "labels": ["Tag"],
+      "properties": {
+        "name": "Graph Databases"
+      }
+    },
+    {
+      "id": 10,
+      "labels": ["Tag"],
+      "properties": {
+        "name": "Graph Processing"
+      }
+    }
+  ],
+  "edges" : [
+    {
+      "id": 0,
+      "source" : 0,
+      "target" : 1,
+      "relType" : ["KNOWS"],
+      "properties" : {
+        "since" : 2014
+      }
+    },
+    {
+      "id": 1,
+      "source" : 1,
+      "target" : 0,
+      "relType" : ["KNOWS"],
+      "properties" : {
+        "since" : 2014
+      }
+    },
+    {
+      "id": 2,
+      "source" : 1,
+      "target" : 2,
+      "relType" : ["KNOWS"],
+      "properties" : {
+        "since" : 2013
+      }
+    },
+    {
+      "id": 3,
+      "source" : 2,
+      "target" : 1,
+      "relType" : ["KNOWS"],
+      "properties" : {
+        "since" : 2013
+      }
+    },
+    {
+      "id": 4,
+      "source" : 2,
+      "target" : 3,
+      "relType" : ["KNOWS"],
+      "properties" : {
+        "since" : 2014
+      }
+    },
+    {
+      "id": 5,
+      "source" : 3,
+      "target" : 2,
+      "relType" : ["KNOWS"],
+      "properties" : {
+        "since" : 2014
+      }
+    },
+    {
+      "id": 6,
+      "source" : 4,
+      "target" : 0,
+      "relType" : ["KNOWS"],
+      "properties" : {
+        "since" : 2013
+      }
+    },
+    {
+      "id": 7,
+      "source" : 4,
+      "target" : 1,
+      "relType" : ["KNOWS"],
+      "properties" : {
+        "since" : 2015
+      }
+    },
+    {
+      "id": 8,
+      "source" : 5,
+      "target" : 2,
+      "relType" : ["KNOWS"],
+      "properties" : {
+        "since" : 2015
+      }
+    },
+    {
+      "id": 9,
+      "source" : 5,
+      "target" : 3,
+      "relType" : ["KNOWS"],
+      "properties" : {
+        "since" : 2015
+      }
+    },
+    {
+      "id": 10,
+      "source" : 4,
+      "target" : 6,
+      "relType" : ["HAS_INTEREST"]
+    },
+    {
+      "id": 11,
+      "source" : 0,
+      "target" : 6,
+      "relType" : ["HAS_INTEREST"]
+
+    },
+    {
+      "id": 12,
+      "source" : 3,
+      "target" : 8,
+      "relType" : ["HAS_INTEREST"]
+
+    },
+    {
+      "id": 13,
+      "source" : 5,
+      "target" : 8,
+      "relType" : ["HAS_INTEREST"]
+
+    },
+    {
+      "id": 14,
+      "source" : 9,
+      "target" : 6,
+      "relType" : ["HAS_TAG"]
+    },
+    {
+      "id": 15,
+      "source" : 9,
+      "target" : 7,
+      "relType" : ["HAS_TAG"]
+    },
+    {
+      "id": 16,
+      "source" : 10,
+      "target" : 7,
+      "relType" : ["HAS_TAG"]
+    },
+    {
+      "id": 17,
+      "source" : 10,
+      "target" : 8,
+      "relType" : ["HAS_TAG"]
+    },
+    {
+      "id": 18,
+      "source" : 9,
+      "target" : 0,
+      "relType" : ["HAS_MODERATOR"]
+    },
+    {
+      "id": 19,
+      "source" : 10,
+      "target" : 3,
+      "relType" : ["HAS_MODERATOR"]
+    },
+    {
+      "id": 20,
+      "source" : 9,
+      "target" : 0,
+      "relType" : ["HAS_MEMBER"]
+    },
+    {
+      "id": 21,
+      "source" : 9,
+      "target" : 1,
+      "relType" : ["HAS_MEMBER"]
+    },
+    {
+      "id": 22,
+      "source" : 10,
+      "target" : 2,
+      "relType" : ["HAS_MEMBER"]
+    },
+    {
+      "id": 23,
+      "source" : 10,
+      "target" : 3,
+      "relType" : ["HAS_MEMBER"]
+    }
+  ]
+}

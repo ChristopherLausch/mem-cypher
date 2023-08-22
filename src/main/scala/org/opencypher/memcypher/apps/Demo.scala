@@ -14,11 +14,21 @@
 package org.opencypher.memcypher.apps
 
 import com.typesafe.scalalogging.Logger
+import org.json4s.native.JsonMethods._
+import org.json4s._
+import org.json4s.native.JsonMethods
 import org.opencypher.memcypher.api.value.{MemNode, MemRelationship}
 import org.opencypher.memcypher.api.{MemCypherGraph, MemCypherSession}
+import org.opencypher.memcypher.apps.Demo.memCypher
 import org.opencypher.okapi.api.configuration.Configuration.PrintTimings
-import org.opencypher.okapi.api.value.CypherValue.CypherMap
+import org.opencypher.okapi.api.value.CypherValue
+import org.opencypher.okapi.api.value.CypherValue.{CypherMap, CypherValue}
 import org.opencypher.okapi.relational.api.configuration.CoraConfiguration.{PrintFlatPlan, PrintPhysicalPlan}
+import play.api.libs.json.Format.GenericFormat
+import play.api.libs.json.OFormat.oFormatFromReadsAndOWrites
+import play.api.libs.json._
+
+import scala.io.Source
 
 object Demo extends App {
 
@@ -45,6 +55,87 @@ object Demo extends App {
 
   val test = "test"
 
+}
+object Parserv2 extends App {
+  // Define a custom Format instance for CypherMap
+  implicit val cypherMapFormat: Format[CypherMap] = new Format[CypherMap] {
+    override def reads(json: JsValue): JsResult[CypherMap] = {
+      val mapResult: JsResult[Map[String, JsValue]] = json.validate[Map[String, JsValue]]
+      mapResult.map(m => CypherMap(m))
+    }
+
+    override def writes(o: CypherMap): JsValue = {
+      Json.toJson(o.value)
+    }
+  }
+
+  // Define JSON formats for your case classes
+  implicit val memNodeFormat: OFormat[MemNode] = Json.format[MemNode]
+  implicit val memRelationshipFormat: OFormat[MemRelationship] = Json.format[MemRelationship]
+  implicit val memCypherGraphFormat: OFormat[MemCypherGraph] = Json.format[MemCypherGraph]
+
+  val filename = "data.json"
+
+  // Read the file content
+  val fileContent = Source.fromFile(filename).mkString
+
+  // Parse the JSON content
+  val parsedJson: JsValue = Json.parse(fileContent)
+
+  // Extract the nodes and rels from the JSON
+  val memCypherGraphResult: JsResult[MemCypherGraph] = parsedJson.validate[MemCypherGraph]
+
+  // Print the parsed MemCypherGraph or the validation error
+  memCypherGraphResult.fold(
+    errors => println(s"Error parsing JSON into MemCypherGraph: ${JsError.toJson(errors)}"),
+    graph => println(s"Parsed MemCypherGraph: $graph")
+  )
+}
+
+  object Main extends App {
+    // Custom serializer for CypherMap
+    val customSerializer = new CustomSerializer[CypherMap](format => ( {
+      case JObject(fields) =>
+        CypherMap(fields.map {
+          case (key, value) => key -> CypherValue(value)
+        }.toMap)
+    }, {
+      case map: CypherMap =>
+        JObject(map.value.map {
+          case (key, CypherValue.CypherString(value)) => key -> JString(value)
+          case (key, CypherValue.CypherInteger(value)) => key -> JInt(value)
+          case (key, CypherValue.CypherBoolean(value)) => key -> JBool(value)
+          case (key, CypherValue.CypherNull) => key -> JNull
+        }.toList)
+    }
+    ))
+    implicit val json4sFormats : Formats = DefaultFormats + customSerializer
+
+    val filename = "src/main/resources/demo.json"
+
+    // Read the file content
+    val fileContent = Source.fromFile(filename).mkString
+
+    // Parse the JSON content
+    val parsedJson: JValue = parse(fileContent)
+
+    // Convert the parsed JSON into a MemCypherGraph
+    val result: Option[MemCypherGraph] = try {
+      val nodes = (parsedJson \ "nodes").extract[Seq[MemNode]]
+      val rels = (parsedJson \ "rels").extract[Seq[MemRelationship]]
+      Some(MemCypherGraph(nodes, rels))
+    } catch {
+      case e: Exception =>
+        println("Error extracting MemCypherGraph from JSON:")
+        println(e)
+        None
+    }
+
+    // Handle the result
+    result match {
+      case Some(memCypherGraph) => println(s"Parsed MemCypherGraph: $memCypherGraph")
+      case None => println("Error parsing JSON into MemCypherGraph")
+    }
   }
 
 object DemoData {

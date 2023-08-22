@@ -1,0 +1,19 @@
+{
+  "nodes": [
+    {
+      "id": 1,
+      "labels": ["Person"],
+      "properties": {
+        "name": "Alice"
+      }
+    },
+    {
+      "id": 2,
+      "labels": ["Person"],
+      "properties": {
+        "name": "Bob"
+      }
+    }
+  ],
+  "rels": []
+}
