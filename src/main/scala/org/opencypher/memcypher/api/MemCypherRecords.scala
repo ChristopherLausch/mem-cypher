@@ -16,7 +16,7 @@ package org.opencypher.memcypher.api
 import org.opencypher.memcypher.impl.MemRuntimeContext
 import org.opencypher.memcypher.impl.value.CypherMapOps._
 import org.opencypher.memcypher.impl.value.CypherValueOps._
-import org.opencypher.okapi.api.table.{CypherRecords, CypherRecordsCompanion}
+import org.opencypher.okapi.api.table.{CypherRecords}
 import org.opencypher.okapi.api.types.CypherType
 import org.opencypher.okapi.api.types.CypherType._
 import org.opencypher.okapi.api.value.CypherValue.{CypherInteger, CypherList, CypherMap, CypherValue}
@@ -28,13 +28,13 @@ import org.opencypher.okapi.ir.api.expr._
 import org.opencypher.okapi.relational.impl.table.RecordHeader
 import org.opencypher.memcypher.impl.table.RecordHeaderUtils._
 
-object MemRecords extends CypherRecordsCompanion[MemRecords, MemCypherSession] {
+object MemRecords extends CypherRecords[MemRecords]{
 
   def create(rows: Seq[CypherMap], header: RecordHeader): MemRecords = MemRecords(Embeddings(rows), header)
 
   def create(embeddings: Embeddings, header: RecordHeader): MemRecords = MemRecords(embeddings, header)
 
-  override def unit()(implicit session: MemCypherSession): MemRecords = MemRecords(Embeddings.unit, RecordHeader.empty)
+  def unit()(implicit session: MemCypherSession): MemRecords = MemRecords(Embeddings.unit, RecordHeader.empty)
 }
 
 case class MemRecords(
