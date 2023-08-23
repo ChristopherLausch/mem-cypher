@@ -29,15 +29,14 @@ case class MemNode(
 
 case class MemRelationship(
   override val id: Long,
-  override val source: Long,
-  override val target: Long,
+  override val startId: Long,
+  override val endId: Long,
   override val relType: String,
   override val properties: CypherMap = CypherMap.empty) extends CypherRelationship[Long] {
 
   type I = MemRelationship
 
-  override def copy(id: Long = id, source: Long = source, target: Long = target, relType: String = relType, properties: CypherMap = properties): MemRelationship = {
-    MemRelationship(id, source, target, relType, properties).asInstanceOf[this.type]
+  override def copy(id: Long = id, startId: Long = startId, endId: Long = endId, relType: String = relType, properties: CypherMap = properties): MemRelationship = {
+    MemRelationship(id, startId, endId, relType, properties).asInstanceOf[this.type]
   }
-
 }

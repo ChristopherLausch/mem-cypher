@@ -13,44 +13,57 @@
  */
 package org.opencypher.memcypher.api
 
-import org.opencypher.memcypher.impl.MemRuntimeContext
-import org.opencypher.memcypher.impl.value.CypherMapOps._
+import org.opencypher.memcypher.impl.table.RecordHeaderUtils._
 import org.opencypher.memcypher.impl.value.CypherValueOps._
-import org.opencypher.okapi.api.table.{CypherRecords}
+import org.opencypher.okapi.api.table.CypherRecords
 import org.opencypher.okapi.api.types.CypherType
 import org.opencypher.okapi.api.types.CypherType._
 import org.opencypher.okapi.api.value.CypherValue.{CypherInteger, CypherList, CypherMap, CypherValue}
 import org.opencypher.okapi.impl.exception.NotImplementedException
 import org.opencypher.okapi.impl.table.RecordsPrinter
 import org.opencypher.okapi.impl.util.PrintOptions
-import org.opencypher.okapi.ir.api.block.{Asc, Desc, SortItem}
 import org.opencypher.okapi.ir.api.expr._
 import org.opencypher.okapi.relational.impl.table.RecordHeader
-import org.opencypher.memcypher.impl.table.RecordHeaderUtils._
 
-object MemRecords extends CypherRecords[MemRecords]{
+object MemRecords extends CypherRecords{
+  override def iterator: Iterator[CypherMap] = ???
 
-  def create(rows: Seq[CypherMap], header: RecordHeader): MemRecords = MemRecords(Embeddings(rows), header)
+  override def collect: Array[CypherMap] = ???
 
-  def create(embeddings: Embeddings, header: RecordHeader): MemRecords = MemRecords(embeddings, header)
+   override def physicalColumns: Seq[String] = ???
 
-  def unit()(implicit session: MemCypherSession): MemRecords = MemRecords(Embeddings.unit, RecordHeader.empty)
+  override def columnType: Map[String, CypherType] = ???
+
+  override def rows: Iterator[String => CypherValue] = ???
+
+  override def size: Long = ???
+
+  override def show(implicit options: PrintOptions): Unit = ???
+
+  def apply(header: RecordHeader): MemRecords = ???
+
+
+  def create(rows: Seq[CypherMap], header: RecordHeader): MemRecords = MemRecords(header)
+
+  def create(embeddings: Embeddings, header: RecordHeader): MemRecords = MemRecords(header)
+
+  def unit()(implicit session: MemCypherSession): MemRecords = MemRecords(RecordHeader.empty)
 }
 
-case class MemRecords(
+abstract case class MemRecords(
   data: Embeddings,
   header: RecordHeader) extends CypherRecords {
 
   override def rows: Iterator[String => CypherValue] = data.rows.map(_.value)
 
-  override def columns: Seq[String] = header.fieldsInOrder
+  //override def columns: Seq[String] = header.columns
 
   override def columnType: Map[String, CypherType] = data.data.headOption match {
     case Some(row) => row.value.mapValues(_.cypherType)
     case None => Map.empty
   }
 
-  override def iterator: Iterator[CypherMap] = toCypherMap.iterator
+  //override def iterator: Iterator[CypherMap] = toCypherMap.iterator
 
   override def size: Long = rows.size
 
@@ -58,9 +71,9 @@ case class MemRecords(
 
   override def collect: Array[CypherMap] = iterator.toArray
 
-  def toCypherMap: Seq[CypherMap] = {
+  /*def toCypherMap: Seq[CypherMap] = {
     data.data.map(row => row.nest(header))
-  }
+  }*/
 }
 
 object Embeddings {
@@ -80,23 +93,24 @@ case class Embeddings(data: Seq[CypherMap]) {
   // ---------------
   // Unary operators
   // ---------------
-
-  def select(fields: Set[String])(implicit header: RecordHeader, context: MemRuntimeContext): Embeddings =
+/*
+  def select(fields: Set[String])(implicit header: RecordHeader): Embeddings =
     copy(data = data.map(row => row.filterKeys(fields)))
 
-  def project(expr: Expr, toKey: String)(implicit header: RecordHeader, context: MemRuntimeContext): Embeddings =
+  def project(expr: Expr, toKey: String)(implicit header: RecordHeader): Embeddings =
     copy(data = data.map(row => row.updated(toKey, row.evaluate(expr))))
 
-  def filter(expr: Expr)(implicit header: RecordHeader, context: MemRuntimeContext): Embeddings =
+  def filter(expr: Expr)(implicit header: RecordHeader): Embeddings =
     copy(data = data.filter(row => row.evaluate(expr).as[Boolean].getOrElse(false)))
 
-  def drop(fields: Set[String])(implicit header: RecordHeader, context: MemRuntimeContext): Embeddings =
+  def drop(fields: Set[String])(implicit header: RecordHeader): Embeddings =
     copy(data = data.map(row => row.filterKeys(row.keys -- fields)))
 
-  def distinct(fields: Set[String])(implicit header: RecordHeader, context: MemRuntimeContext): Embeddings =
-    copy(data = select(fields)(header, context).data.distinct)
-
-  def group(by: Set[Expr], aggregations: Set[(Var, Aggregator)])(implicit header: RecordHeader, context: MemRuntimeContext): Embeddings = {
+  def distinct(fields: Set[String])(implicit header: RecordHeader): Embeddings =
+    copy(data = select(fields)(header).data.distinct)
+*/
+  /*
+  def group(by: Set[Expr], aggregations: Set[(Var, Aggregator)])(implicit header: RecordHeader): Embeddings = {
     val groupKeys = by.toSeq
     val groupedData = data
       .groupBy(row => groupKeys.map(row.evaluate))
@@ -159,9 +173,11 @@ case class Embeddings(data: Seq[CypherMap]) {
     }.toList
 
     copy(data = withKeysAndAggregates)
-  }
+  }*/
 
-  def orderBy(sortItems: Seq[SortItem[Expr]])(implicit header: RecordHeader, context: MemRuntimeContext): Embeddings = {
+  /*old
+  def orderBy(sortItems: Seq[SortItem[Expr]])(implicit header: RecordHeader): Embeddings = {
+
     val newData = sortItems.foldLeft(data) {
       case (currentData, sortItem) =>
         sortItem match {
@@ -174,12 +190,12 @@ case class Embeddings(data: Seq[CypherMap]) {
     }
     copy(data = newData)
   }
-
+ */
   // ----------------
   // Binary operators
   // ----------------
-
-  def innerJoin(other: Embeddings, left: Expr, right: Expr)(implicit header: RecordHeader, context: MemRuntimeContext): Embeddings = {
+/*
+  def innerJoin(other: Embeddings, left: Expr, right: Expr)(implicit header: RecordHeader): Embeddings = {
     if (this.data.size < other.data.size) {
       join(other, left, right, rightOuter = false)
     } else {
@@ -187,14 +203,14 @@ case class Embeddings(data: Seq[CypherMap]) {
     }
   }
 
-  def rightOuterJoin(other: Embeddings, left: Expr, right: Expr)(implicit header: RecordHeader, context: MemRuntimeContext): Embeddings =
+  def rightOuterJoin(other: Embeddings, left: Expr, right: Expr)(implicit header: RecordHeader): Embeddings =
     join(other, left, right, rightOuter = true)
 
   private def join(
     other: Embeddings,
     left: Expr,
     right: Expr,
-    rightOuter: Boolean)(implicit header: RecordHeader, context: MemRuntimeContext): Embeddings = {
+    rightOuter: Boolean)(implicit header: RecordHeader): Embeddings = {
 
     val hashTable = this.rows.map(row => row.evaluate(left).hashCode() -> row)
       .toSeq
@@ -216,6 +232,7 @@ case class Embeddings(data: Seq[CypherMap]) {
 
     copy(data = newData)
   }
+*/
 
   def cartesianProduct(other: Embeddings): Embeddings = {
     val newData = for {

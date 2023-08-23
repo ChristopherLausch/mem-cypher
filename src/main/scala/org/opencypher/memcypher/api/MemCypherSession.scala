@@ -13,48 +13,43 @@
  */
 package org.opencypher.memcypher.api
 
-import java.util.concurrent.atomic.AtomicLong
+import org.opencypher.okapi.api.table.CypherRecords
+import org.opencypher.okapi.api.value.CypherValue
+import org.opencypher.okapi.api.value.CypherValue.CypherMap
 
-import org.opencypher.memcypher.api.MemCypherConverters._
-import org.opencypher.memcypher.impl.MemRuntimeContext
-import org.opencypher.memcypher.impl.planning.{MemOperatorProducer, MemPhysicalPlannerContext}
+import java.util.concurrent.atomic.AtomicLong
+//import org.opencypher.memcypher.impl.planning.{MemOperatorProducer, MemPhysicalPlannerContext}
 import org.opencypher.okapi.api.configuration.Configuration.PrintTimings
 import org.opencypher.okapi.api.graph._
-import org.opencypher.okapi.api.table.CypherRecords
-import org.opencypher.okapi.api.value.CypherValue._
-import org.opencypher.okapi.api.value._
-import org.opencypher.okapi.impl.exception.NotImplementedException
-import org.opencypher.okapi.impl.graph.CypherCatalog
+import org.opencypher.okapi.impl.graph.{CypherCatalog, QGNGenerator}
 import org.opencypher.okapi.impl.io.SessionGraphDataSource
 import org.opencypher.okapi.impl.util.Measurement.printTiming
 import org.opencypher.okapi.ir.api._
-import org.opencypher.okapi.ir.api.configuration.IrConfiguration.PrintIr
-import org.opencypher.okapi.ir.api.expr.Expr
-import org.opencypher.okapi.ir.impl.parse.CypherParser
-import org.opencypher.okapi.ir.impl.{IRBuilder, IRBuilderContext, QGNGenerator, QueryCatalog}
-import org.opencypher.okapi.logical.api.configuration.LogicalConfiguration.PrintLogicalPlan
+//old import org.opencypher.okapi.ir.impl.{IRBuilder, IRBuilderContext, QueryCatalog}
 import org.opencypher.okapi.logical.impl._
-import org.opencypher.okapi.relational.api.configuration.CoraConfiguration.{PrintFlatPlan, PrintPhysicalPlan}
-import org.opencypher.okapi.relational.impl.flat.{FlatPlanner, FlatPlannerContext}
-import org.opencypher.okapi.relational.impl.physical.PhysicalPlanner
+//import org.opencypher.okapi.relational.api.configuration.CoraConfiguration.{PrintFlatPlan, PrintPhysicalPlan}
+//import org.opencypher.okapi.relational.impl.flat.{FlatPlanner, FlatPlannerContext}
+//import org.opencypher.okapi.relational.impl.physical.PhysicalPlanner
 
 object MemCypherSession {
   def create: MemCypherSession = new MemCypherSession()
 }
 
-sealed class MemCypherSession() extends CypherSession {
+case class MemCypherSession() extends CypherSession {
 
   self =>
 
   override val catalog: CypherCatalog = new CypherCatalog
 
   private val producer = new LogicalOperatorProducer
+  /*old
+  //removed the cypher and cypherongraph overrides and the variables used by it
   private val logicalPlanner = new LogicalPlanner(producer)
   private val logicalOptimizer = LogicalOptimizer
   private val flatPlanner = new FlatPlanner()
   private val physicalPlanner = new PhysicalPlanner(new MemOperatorProducer()(this))
   private val parser = CypherParser
-
+  */
   private val maxSessionGraphId: AtomicLong = new AtomicLong(0)
 
   private[opencypher] val emptyGraphQgn = QualifiedGraphName(catalog.sessionNamespace, GraphName("emptyGraph"))
@@ -66,10 +61,17 @@ sealed class MemCypherSession() extends CypherSession {
     * @param parameters parameters used by the Cypher query
     * @return result of the query
     */
-  override def cypher(query: String, parameters: CypherMap = CypherMap.empty, drivingTable: Option[CypherRecords] = None): CypherResult =
-    cypherOnGraph(MemCypherGraph.empty(this), query, parameters, drivingTable)
 
+    //ToDo check if working: Removed the cypher and cypherongraph overrides
+  /* def cypher(query: String, parameters: CypherMap = CypherMap.empty, drivingTable: Option[CypherRecords] = None): CypherResult =
+      cypherOnGraph(MemCypherGraph.empty(this), query, parameters, drivingTable)
+*/
+  def cypherOnGraph(graph: PropertyGraph, query: String, parameters: CypherMap, maybeDrivingTable: Option[CypherRecords]): CypherResult = {
+    cypherOnGraph(MemCypherGraph.empty(this), query, parameters, maybeDrivingTable, Map.empty)
+  }
+/*
   override def cypherOnGraph(graph: PropertyGraph, query: String, parameters: CypherMap, maybeDrivingTable: Option[CypherRecords]): CypherResult = {
+
     val ambientGraph = mountAmbientGraph(graph)
 
     val (stmt, extractedLiterals, semState) = time("AST construction")(parser.process(query)(CypherParser.defaultContext))
@@ -101,6 +103,7 @@ sealed class MemCypherSession() extends CypherSession {
     val flatPlan = time("Flat planning")(flatPlanner(optimizedLogicalPlan)(FlatPlannerContext(allParameters)))
     if (PrintFlatPlan.isSet) println(flatPlan.pretty)
 
+//old    val memPlannerContext = MemPhysicalPlannerContext.from(QueryCatalog(catalog.listSources), MemRecords.unit()(this), allParameters)(this)
     val memPlannerContext = MemPhysicalPlannerContext.from(QueryCatalog(catalog.listSources), MemRecords.unit()(this), allParameters)(this)
     val memPlan = time("Physical planning")(physicalPlanner.process(flatPlan)(memPlannerContext))
 
@@ -113,11 +116,15 @@ sealed class MemCypherSession() extends CypherSession {
     time("Query execution")(MemCypherResultBuilder.from(logicalPlan, flatPlan, memPlan)(MemRuntimeContext(memPlannerContext.parameters, graphAt)))
   }
 
+  */
+
+
+
   private[opencypher] def time[T](description: String)(code: => T): T = {
     if (PrintTimings.isSet) printTiming(description)(code) else code
   }
 
-  private[opencypher] val qgnGenerator = new QGNGenerator {
+  override private[opencypher] val qgnGenerator = new QGNGenerator {
     override def generate: QualifiedGraphName = {
       QualifiedGraphName(SessionGraphDataSource.Namespace, GraphName(s"tmp#${maxSessionGraphId.incrementAndGet}"))
     }
@@ -128,4 +135,10 @@ sealed class MemCypherSession() extends CypherSession {
     catalog.store(qgn, ambient)
     IRCatalogGraph(qgn, ambient.schema)
   }
+
+  override private[opencypher] def cypherOnGraph(graph: PropertyGraph, query: String, parameters: CypherMap, drivingTable: Option[CypherRecords], queryCatalog: Map[QualifiedGraphName, PropertyGraph]) = ???
+
+  override type Result = CypherResult
+
+  override def cypher(query: String, parameters: CypherMap, drivingTable: Option[CypherRecords], queryCatalog: Map[QualifiedGraphName, PropertyGraph]): CypherResult = ???
 }

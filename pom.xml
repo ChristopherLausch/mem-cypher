@@ -48,7 +48,7 @@
 
     <dependency>
       <groupId>com.typesafe.scala-logging</groupId>
-      <artifactId>scala-logging_2.11</artifactId>
+      <artifactId>scala-logging_2.12</artifactId>
       <version>${dep.scalalogging.version}</version>
     </dependency>
 
@@ -64,7 +64,7 @@
 
     <dependency>
       <groupId>com.github.tototoshi</groupId>
-      <artifactId>scala-csv_2.11</artifactId>
+      <artifactId>scala-csv_2.12</artifactId>
       <version>${dep.scala-csv.version}</version>
     </dependency>
 
@@ -94,10 +94,19 @@
 
     <dependency>
       <groupId>org.opencypher</groupId>
+      <artifactId>graph-ddl</artifactId>
+      <version>${dep.okapi.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.opencypher</groupId>
       <artifactId>tck</artifactId>
       <version>${dep.tck.version}</version>
       <scope>test</scope>
     </dependency>
+
+
+
 
     <dependency>
       <groupId>org.scalatest</groupId>

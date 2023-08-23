@@ -17,27 +17,30 @@ import org.opencypher.memcypher.api
 import org.opencypher.memcypher.api.value.{MemNode, MemRelationship}
 import org.opencypher.okapi.api.graph.{CypherResult, PropertyGraph}
 import org.opencypher.okapi.api.schema.Schema
+import org.opencypher.okapi.api.table.CypherRecords
 import org.opencypher.okapi.api.types.CypherType._
 import org.opencypher.okapi.api.types.{CTNode, CTRelationship}
 import org.opencypher.okapi.api.value.CypherValue.{CypherMap, CypherNull}
-import org.opencypher.okapi.ir.api.expr._
-import org.opencypher.okapi.relational.impl.table.{OpaqueField, ProjectedExpr, RecordHeader}
-import org.opencypher.memcypher.impl.table.RecordHeaderUtils._
-import org.opencypher.okapi.api.table.CypherRecords
 import org.opencypher.okapi.impl.exception.IllegalArgumentException
+import org.opencypher.okapi.ir.api.expr._
+import org.opencypher.okapi.relational.impl.table.RecordHeader
 
 object MemCypherGraph {
-  def empty(implicit session: MemCypherSession): MemCypherGraph = MemCypherGraph(Seq.empty, Seq.empty)(session)
+  def apply(empty: Seq[MemNode], empty1: Seq[MemRelationship])(empty2: MemCypherSession) = ???
+
+  def empty(implicit session: MemCypherSession): MemCypherGraph = {
+    MemCypherGraph(Seq.empty, Seq.empty)(session)
+  }
 
   def create(nodes: Seq[MemNode], rels: Seq[MemRelationship])(implicit session: MemCypherSession): MemCypherGraph = {
-    api.MemCypherGraph(nodes, rels)
+    api.MemCypherGraph(nodes, rels)(session)
   }
 }
 
-case class MemCypherGraph(
+abstract case class MemCypherGraph(
   nodes: Seq[MemNode],
   rels: Seq[MemRelationship])
-  (implicit memSession: MemCypherSession) extends PropertyGraph {
+                                  (implicit memSession: MemCypherSession) extends PropertyGraph {
 
   type CypherSession = MemCypherSession
 
@@ -80,6 +83,8 @@ case class MemCypherGraph(
     * @param name the field name for the returned nodes.
     * @return a table of nodes of the specified type.
     */
+
+  /* remove overrides
   override def nodes(name: String, nodeCypherType: CTNode): MemRecords = {
     val node = Var(name)(nodeCypherType)
     val filteredNodes = if (nodeCypherType.labels.isEmpty) {
@@ -139,10 +144,10 @@ case class MemCypherGraph(
       }
     }
   }
-
+  */
   override def unionAll(others: PropertyGraph*): PropertyGraph = ???
 
-  override def cypher(query: String, parameters: CypherMap, drivingTable: Option[CypherRecords]): CypherResult = super.cypher(query, parameters, drivingTable)
+  def cypher(query: String, parameters: CypherMap, drivingTable: Option[CypherRecords]): CypherResult = super.cypher(query, parameters, drivingTable)
 
   def cypher_with_defaults(query: String): CypherResult = super.cypher(query)
 }

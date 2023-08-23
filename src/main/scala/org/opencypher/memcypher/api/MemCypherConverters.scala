@@ -33,12 +33,13 @@ object MemCypherConverters {
     }
   }
 
+  /*old: removed MemCypherResult class, because its never used
   implicit class RichCypherResult(result: CypherResult) {
     def asMemCypher: MemCypherResult = result match {
       case r: MemCypherResult => r
       case _ => throw UnsupportedOperationException(s"can only handle MemCypher result, got $result")
     }
-  }
+  }*/
 
   implicit class RichCypherRecords(records: CypherRecords) {
     def asMemCypher: MemRecords = records match {

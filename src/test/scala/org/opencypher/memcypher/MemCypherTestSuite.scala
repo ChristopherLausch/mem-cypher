@@ -13,7 +13,7 @@
  */
 package org.opencypher.memcypher
 
-import org.opencypher.memcypher.api.MemCypherConverters._
+import org.opencypher.memcypher.api.MemCypherConverters.RichPropertyGraph
 import org.opencypher.memcypher.api.{MemCypherGraph, MemCypherSession}
 import org.opencypher.memcypher.support.creation.memcypher.MemCypherTestGraphFactory
 import org.opencypher.okapi.testing.propertygraph.CreateGraphFactory

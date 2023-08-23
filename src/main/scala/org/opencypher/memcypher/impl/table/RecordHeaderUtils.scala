@@ -14,10 +14,9 @@
 package org.opencypher.memcypher.impl.table
 
 import org.opencypher.okapi.ir.api.expr.{Expr, Property}
-import org.opencypher.okapi.relational.impl.table.{FieldSlotContent, ProjectedExpr, RecordSlot, SlotContent}
 
 object RecordHeaderUtils {
-
+/* old
   implicit class RichRecordSlot(slot: RecordSlot) {
 
     def columnName: String = slot.content match {
@@ -41,4 +40,6 @@ object RecordHeaderUtils {
       case _ => expr.withoutType
     }
   }
+
+ */
 }

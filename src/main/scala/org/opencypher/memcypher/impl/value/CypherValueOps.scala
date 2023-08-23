@@ -57,7 +57,7 @@ object CypherValueOps {
     def <=(other: CypherValue): Boolean = {
       value.cypherType.join(other.cypherType).ordering.asInstanceOf[Ordering[Any]].lteq(value.unwrap, other.unwrap)
     }
-
+/* old
     def +(other: CypherValue): CypherValue = {
       if (value.cypherType.sameTypeAs(other.cypherType).isTrue && value.cypherType.subTypeOf(CTNumber).isTrue) {
         value.cypherType match {
@@ -69,6 +69,7 @@ object CypherValueOps {
         throw IllegalArgumentException("Identical number types", s"${value.cypherType} and ${other.cypherType}")
       }
     }
+    */
   }
 
 }

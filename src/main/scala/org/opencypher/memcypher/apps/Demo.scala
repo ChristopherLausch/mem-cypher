@@ -18,35 +18,32 @@ import org.opencypher.memcypher.api.value.{MemNode, MemRelationship}
 import org.opencypher.memcypher.api.{MemCypherGraph, MemCypherSession}
 import org.opencypher.okapi.api.configuration.Configuration.PrintTimings
 import org.opencypher.okapi.api.value.CypherValue.CypherMap
-import org.opencypher.okapi.relational.api.configuration.CoraConfiguration.{PrintFlatPlan, PrintPhysicalPlan}
 
-object Demo extends App {
 
-  val logger = Logger("Demo")
+object Demo {
+  def main(args: Array[String]): Unit = {
+    val logger = Logger("Demo")
 
-  PrintTimings.set()
-  PrintFlatPlan.set()
-  PrintPhysicalPlan.set()
+    PrintTimings.set()
 
-  val query =
-    s"""|MATCH (n:Person)
-        |RETURN n.city, n.age
-        |ORDER BY n.city ASC, n.age DESC""".stripMargin
+    val query =
+      s"""|MATCH (n:Person)
+          |RETURN n.city, n.age
+          |ORDER BY n.city ASC, n.age DESC""".stripMargin
 
-  logger.info(s"Executing query: $query")
+    logger.info(s"Executing query: $query")
 
-  implicit val memCypher: MemCypherSession = MemCypherSession.create
+    implicit val memCypher: MemCypherSession = MemCypherSession.create
 
-  val graph = MemCypherGraph.create(DemoData.nodes, DemoData.rels)
+    val graph = MemCypherGraph.create(DemoData.nodes, DemoData.rels)
 
-  graph.cypher(query).show
+    graph.cypher(query).show
 
-  val result = graph.cypher_with_defaults(query)
+    val result = graph.cypher_with_defaults(query)
 
-  val test = "test"
-
+    val test = "test"
   }
-
+}
 object DemoData {
 
   def nodes = Seq(n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10)
