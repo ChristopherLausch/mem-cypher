@@ -22,12 +22,11 @@ import org.opencypher.okapi.api.types.CypherType._
 import org.opencypher.okapi.api.types.{CTNode, CTRelationship}
 import org.opencypher.okapi.api.value.CypherValue.{CypherMap, CypherNull}
 import org.opencypher.okapi.impl.exception.IllegalArgumentException
-import org.opencypher.okapi.ir.api.expr._
+import org.opencypher.okapi.ir.api.expr.{Expr, PredicateExpression, _}
+import org.opencypher.okapi.relational.api.schema.RelationalSchema
 import org.opencypher.okapi.relational.impl.table.RecordHeader
 
 object MemCypherGraph {
-  def apply(empty: Seq[MemNode], empty1: Seq[MemRelationship])(empty2: MemCypherSession) = ???
-
   def empty(implicit session: MemCypherSession): MemCypherGraph = {
     MemCypherGraph(Seq.empty, Seq.empty)(session)
   }
@@ -37,7 +36,7 @@ object MemCypherGraph {
   }
 }
 
-abstract case class MemCypherGraph(
+case class MemCypherGraph(
   nodes: Seq[MemNode],
   rels: Seq[MemRelationship])
                                   (implicit memSession: MemCypherSession) extends PropertyGraph {
@@ -84,8 +83,7 @@ abstract case class MemCypherGraph(
     * @return a table of nodes of the specified type.
     */
 
-  /* remove overrides
-  override def nodes(name: String, nodeCypherType: CTNode): MemRecords = {
+  override def nodes(name: String, nodeCypherType: CTNode, exactLabelMatch: Boolean = false): MemRecords = {
     val node = Var(name)(nodeCypherType)
     val filteredNodes = if (nodeCypherType.labels.isEmpty) {
       nodes
@@ -93,7 +91,8 @@ abstract case class MemCypherGraph(
       labelNodeMap.filterKeys(nodeCypherType.labels.subsetOf).values.reduce(_ ++ _)
     }
     val filteredSchema = schemaForNodes(filteredNodes)
-    val targetHeader = RecordHeader.nodeFromSchema(node, filteredSchema)
+    //val targetHeader = RecordHeader.nodeFromSchema(node, filteredSchema)
+    val targetHeader = RelationalSchema.SchemaOps(filteredSchema).headerForNode(node)
     val flattenedNodes = filteredNodes.map(flattenNode(_, targetHeader))
 
 //    println(targetHeader.pretty)
@@ -112,7 +111,8 @@ abstract case class MemCypherGraph(
     val rel = Var(name)(relCypherType)
     val filteredRels = if (relCypherType.types.isEmpty) rels else typeRelMap.filterKeys(relCypherType.types.contains).values.flatten.toSeq
     val filteredSchema = schemaForRels(filteredRels)
-    val targetHeader = RecordHeader.relationshipFromSchema(rel, filteredSchema)
+    //val targetHeader = RecordHeader.relationshipFromSchema(rel, filteredSchema)
+    val targetHeader = RelationalSchema.SchemaOps(filteredSchema).headerForRelationship(rel)
     val flattenedRels = filteredRels.map(flattenRel(_, targetHeader))
 
 //    println(targetHeader.pretty)
@@ -122,32 +122,44 @@ abstract case class MemCypherGraph(
   }
 
   private def flattenNode(node: MemNode, targetHeader: RecordHeader): CypherMap = {
-    targetHeader.slots.foldLeft(CypherMap.empty) {
-      case (currentMap, slot) => slot.content match {
+    //targetHeader.slots.foldLeft(CypherMap.empty) {
+    targetHeader.expressions.foldLeft(CypherMap.empty) {
+      case (currentMap, expression) => expression match {
+        //ToDo Check how to replace the case OpaqueField
+        case HasLabel(_, label) => currentMap.updated(expression.withoutType, node.labels.contains(label.name))
+        case Property(_, key) => currentMap.updated(expression.withoutType, node.properties.getOrElse(key.name, CypherNull))
+        case other => throw IllegalArgumentException("supported slot content", other)
+      }
+      /*case (currentMap, slot) => slot.content match {
         case _ : OpaqueField => currentMap.updated(slot.columnName, node.id)
         case ProjectedExpr(HasLabel(_, label)) => currentMap.updated(slot.columnName, node.labels.contains(label.name))
         case ProjectedExpr(Property(_, key)) => currentMap.updated(slot.columnName, node.properties.getOrElse(key.name, CypherNull))
         case other => throw IllegalArgumentException("supported slot content", other)
-      }
+      }*/
     }
   }
 
   private def flattenRel(rel: MemRelationship, targetHeader: RecordHeader): CypherMap = {
-    targetHeader.slots.foldLeft(CypherMap.empty) {
-      case (currentMap, slot) => slot.content match {
+    //targetHeader.slots.foldLeft(CypherMap.empty) {
+    targetHeader.expressions.foldLeft(CypherMap.empty) {
+      case (currentMap, expression) => expression match {
+        // ToDo case _ : OpaqueField => currentMap.updated(slot.columnName, rel.id)
+        case StartNode(_) => currentMap.updated(expression.withoutType, rel.startId)
+        case EndNode(_) => currentMap.updated(expression.withoutType, rel.endId)
+        case Type(_) => currentMap.updated(expression.withoutType, rel.relType)
+        case Property(_, key) => currentMap.updated(expression.withoutType, rel.properties.getOrElse(key.name, CypherNull))
+        case other => throw IllegalArgumentException("supported slot content", other)
+      }
+      /*case (currentMap, slot) => slot.content match {
         case _ : OpaqueField => currentMap.updated(slot.columnName, rel.id)
-        case ProjectedExpr(StartNode(_)) => currentMap.updated(slot.columnName, rel.source)
-        case ProjectedExpr(EndNode(_)) => currentMap.updated(slot.columnName, rel.target)
+        case ProjectedExpr(StartNode(_)) => currentMap.updated(slot.columnName, rel.startId)
+        case ProjectedExpr(EndNode(_)) => currentMap.updated(slot.columnName, rel.endId)
         case ProjectedExpr(Type(_)) => currentMap.updated(slot.columnName, rel.relType)
         case ProjectedExpr(Property(_, key)) => currentMap.updated(slot.columnName, rel.properties.getOrElse(key.name, CypherNull))
         case other => throw IllegalArgumentException("supported slot content", other)
-      }
+      }*/
     }
   }
-  */
   override def unionAll(others: PropertyGraph*): PropertyGraph = ???
-
-  def cypher(query: String, parameters: CypherMap, drivingTable: Option[CypherRecords]): CypherResult = super.cypher(query, parameters, drivingTable)
-
   def cypher_with_defaults(query: String): CypherResult = super.cypher(query)
 }
