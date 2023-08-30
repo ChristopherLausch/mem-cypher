@@ -13,9 +13,11 @@
  */
 package org.opencypher.memcypher.api
 
-import java.util.concurrent.atomic.AtomicLong
-import org.opencypher.memcypher.api.MemCypherConverters._
+import org.opencypher.memcypher.api.MemCypherConverters.RichPropertyGraph
+import org.opencypher.memcypher.api.configuration.MemCypherCoraConfiguration.{PrintFlatPlan, PrintPhysicalPlan}
 import org.opencypher.memcypher.impl.MemRuntimeContext
+import org.opencypher.memcypher.impl.flat.{FlatPlanner, FlatPlannerContext}
+import org.opencypher.memcypher.impl.physical.PhysicalPlanner
 import org.opencypher.memcypher.impl.planning.{MemOperatorProducer, MemPhysicalPlannerContext}
 import org.opencypher.okapi.api.configuration.Configuration.PrintTimings
 import org.opencypher.okapi.api.graph._
@@ -28,14 +30,19 @@ import org.opencypher.okapi.impl.io.SessionGraphDataSource
 import org.opencypher.okapi.impl.util.Measurement.printTiming
 import org.opencypher.okapi.ir.api._
 import org.opencypher.okapi.ir.api.configuration.IrConfiguration.PrintIr
-import org.opencypher.okapi.ir.api.expr.Expr
+import org.opencypher.okapi.ir.api.expr.Var
 import org.opencypher.okapi.ir.impl.parse.CypherParser
-import org.opencypher.okapi.ir.impl.{IRBuilder, IRBuilderContext, QGNGenerator, QueryCatalog}
+import org.opencypher.okapi.ir.impl.{IRBuilder, IRBuilderContext, QueryLocalCatalog}
 import org.opencypher.okapi.logical.api.configuration.LogicalConfiguration.PrintLogicalPlan
 import org.opencypher.okapi.logical.impl._
-import org.opencypher.okapi.relational.api.configuration.CoraConfiguration.{PrintFlatPlan, PrintPhysicalPlan}
-import org.opencypher.okapi.relational.impl.flat.{FlatPlanner, FlatPlannerContext}
-import org.opencypher.okapi.relational.impl.physical.PhysicalPlanner
+import org.opencypher.okapi.relational.api.configuration.CoraConfiguration.{PrintOptimizedRelationalPlan, PrintQueryExecutionStages, PrintRelationalPlan}
+import org.opencypher.okapi.relational.api.graph.RelationalCypherGraph
+import org.opencypher.okapi.relational.api.planning.{RelationalCypherResult, RelationalRuntimeContext}
+import org.opencypher.okapi.relational.api.table.RelationalCypherRecords
+import org.opencypher.okapi.relational.impl.RelationalConverters.{RichCypherRecords, RichPropertyGraph}
+import org.opencypher.okapi.relational.impl.planning.{RelationalOptimizer, RelationalPlanner}
+
+import java.util.concurrent.atomic.AtomicLong
 
 object MemCypherSession {
   def create: MemCypherSession = new MemCypherSession()
@@ -45,7 +52,7 @@ sealed class MemCypherSession() extends CypherSession {
 
   self =>
 
-  type Result <: CypherResult
+  type Result <: MemCypherResult
 
   override val catalog: CypherCatalog = new CypherCatalog
 
@@ -72,7 +79,7 @@ sealed class MemCypherSession() extends CypherSession {
                       drivingTable: Option[CypherRecords] = None,
                       queryCatalog: Map[QualifiedGraphName, PropertyGraph] = Map.empty)
   : Result =
-    cypherOnGraph(MemCypherGraph.empty(this), query, parameters, drivingTable)
+    cypherOnGraph(MemCypherGraph.empty(this), query, parameters, drivingTable, queryCatalog)
 
   override def cypherOnGraph( graph: PropertyGraph,
                                          query: String,
@@ -114,7 +121,7 @@ sealed class MemCypherSession() extends CypherSession {
     val flatPlan = time("Flat planning")(flatPlanner(optimizedLogicalPlan)(FlatPlannerContext(allParameters)))
     if (PrintFlatPlan.isSet) println(flatPlan.pretty)
 
-    val memPlannerContext = MemPhysicalPlannerContext.from(QueryCatalog(catalog.listSources), MemRecords.unit()(this), allParameters)(this)
+    val memPlannerContext = MemPhysicalPlannerContext.from(QueryLocalCatalog(catalog.listSources), MemRecords.unit()(this), allParameters)(this)
     val memPlan = time("Physical planning")(physicalPlanner.process(flatPlan)(memPlannerContext))
 
     if (PrintPhysicalPlan.isSet) {

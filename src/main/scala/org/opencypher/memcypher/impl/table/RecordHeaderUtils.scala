@@ -16,7 +16,8 @@ package org.opencypher.memcypher.impl.table
 import org.opencypher.okapi.ir.api.expr.{Expr, Property}
 
 object RecordHeaderUtils {
-/* old
+
+  /* RichRecordSlot and RichRecordSlotContent are no longer needed, because RecordSlot and RecordSlotContent no longer exist
   implicit class RichRecordSlot(slot: RecordSlot) {
 
     def columnName: String = slot.content match {
@@ -33,7 +34,7 @@ object RecordHeaderUtils {
       case ProjectedExpr(expr) => expr.withoutType
     }
   }
-
+  */
   implicit class RichExpression(expr: Expr) {
     def columnName: String = expr match {
       case _: Property => s"${expr.withoutType}:${expr.cypherType.material.name}"
@@ -41,5 +42,4 @@ object RecordHeaderUtils {
     }
   }
 
- */
 }
