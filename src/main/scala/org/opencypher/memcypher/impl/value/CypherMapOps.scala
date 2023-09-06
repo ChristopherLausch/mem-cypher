@@ -23,6 +23,7 @@ import org.opencypher.okapi.api.value.CypherValue.{CypherBoolean, CypherInteger,
 import org.opencypher.okapi.impl.exception.{IllegalArgumentException, UnsupportedOperationException}
 import org.opencypher.okapi.ir.api.expr._
 import org.opencypher.okapi.relational.impl.table.RecordHeader
+import org.scalacheck.util.Pretty.prettyAny
 
 object CypherMapOps {
 
@@ -116,6 +117,7 @@ object CypherMapOps {
           nestRel(row, field, header)
 
         case _ =>
+          //ToDo check how to replace slotFor
           row(header.slotFor(field).columnName)
       }
     }
@@ -125,15 +127,18 @@ object CypherMapOps {
       idValue match {
         case id: CypherInteger =>
           val labels = header
-            .labelSlots(field)
-            .mapValues { s => row(s.columnName).cast[Boolean] }
-            .collect { case (h, b) if b => h.label.name }
-            .toSet
+            //.labelSlots(field)
+            //ToDo find out how to call withouttype function for each hasLabel expression
+            .labelsFor(field)
+            //.mapValues { s => row(s.columnName).cast[Boolean] }
+            //.collect { case (h, b) if b => h.label.name }
+            //.toSet
 
           val properties = header
-            .propertySlots(field)
-            .mapValues { s => row(s.columnName) }
-            .collect { case (p, v) if !v.isNull => p.key.name -> v }
+            //.propertySlots(field)
+            .propertiesFor(field)
+            //.mapValues { s => row(s.columnName) }
+            //.collect { case (p, v) if !v.isNull => p.key.name -> v }
 
           MemNode(id.value, labels, properties)
 
@@ -145,14 +150,18 @@ object CypherMapOps {
       val idValue = row(header.slotFor(field).columnName)
       idValue match {
         case id: CypherInteger =>
-          val source = row(header.sourceNodeSlot(field).columnName).cast[Long]
-          val target = row(header.targetNodeSlot(field).columnName).cast[Long]
-          val relType = row(header.typeSlot(field).columnName).cast[String]
+          //val source = row(header.sourceNodeSlot(field).columnName).cast[Long]
+          //val target = row(header.targetNodeSlot(field).columnName).cast[Long]
+          val source = row(header.startNodeFor(field).columnName).cast[Long]
+          val target = row(header.endNodeFor(field).columnName).cast[Long]
+          //val relType = row(header.typeSlot(field).columnName).cast[String]
+          val relType = row(header.typesFor(field)).cast[String]
 
           val properties = header
-            .propertySlots(field)
-            .mapValues { s => row(s.columnName) }
-            .collect { case (p, v) if !v.isNull => p.key.name -> v }
+            //.propertySlots(field)
+            .propertiesFor(field)
+            //.mapValues { s => row(s.columnName) }
+            //.collect { case (p, v) if !v.isNull => p.key.name -> v }
 
           MemRelationship(id.value, source, target, relType, properties)
         case invalidID => throw UnsupportedOperationException(s"CAPSRelationship ID has to be a Long instead of ${invalidID.getClass}")

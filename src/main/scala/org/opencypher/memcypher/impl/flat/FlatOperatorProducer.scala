@@ -61,9 +61,12 @@ class FlatOperatorProducer(implicit context: FlatPlannerContext) {
       in.header.slotFor(field).content
     }
 
+    //ToDo check if childSlots can be replaced by ownedby? -> both need an expression, but somehow it isnt required here for childSlots?
     val finalContents = fieldContents ++ fields.flatMap(in.header.childSlots).map(_.content)
 
-    val (nextHeader, _) = RecordHeader.empty.update(addContents(finalContents))
+    //val (nextHeader, _) = RecordHeader.empty.update(addContents(finalContents))
+    //ToDo check if this works once the finalContents is fixed
+    val (nextHeader, _) = RecordHeader.from(finalContents)
 
     Select(fields, in, nextHeader)
   }
@@ -73,7 +76,10 @@ class FlatOperatorProducer(implicit context: FlatPlannerContext) {
   }
 
   def removeAliases(toKeep: List[Var], in: FlatOperator): FlatOperator = {
-    val renames = in.header.contents.collect {
+    //val renames = in.header.contents.collect {
+    //ToDo RemoveAliases requires an AliasExpr, change the collection to get an AliasExpr
+    val renames = in.header.expressions.collect {
+      //case pf @ ProjectedField(v, _: Property | _: HasLabel | _: HasType) if !toKeep.contains(v) =>
       case pf @ ProjectedField(v, _: Property | _: HasLabel | _: HasType) if !toKeep.contains(v) =>
         pf -> ProjectedExpr(pf.expr)
     }
@@ -81,13 +87,15 @@ class FlatOperatorProducer(implicit context: FlatPlannerContext) {
     if (renames.isEmpty) {
       in
     } else {
-      val newHeaderContents = in.header.contents.map {
+      //val newHeaderContents = in.header.contents.map {
+      val newHeaderContents = in.header.expressions.map {
         case pf @ ProjectedField(v, _: Property | _: HasLabel | _: HasType) if !toKeep.contains(v) =>
           ProjectedExpr(pf.expr)
         case other =>
           other
       }
 
+      //ToDo see line 69
       val (header, _) = RecordHeader.empty.update(addContents(newHeaderContents.toSeq))
 
       RemoveAliases(renames, in, header)
@@ -148,9 +156,12 @@ class FlatOperatorProducer(implicit context: FlatPlannerContext) {
     edgeScan(edge, prev)
   }
 
+
   def aggregate(aggregations: Set[(Var, Aggregator)], group: Set[Var], in: FlatOperator): Aggregate = {
+    //ToDo see line 69 for RecordHeader.empty.update
     val (newHeader, _) = RecordHeader.empty.update(
       addContents(
+        //ToDo old selfwithChildren used: slotFor(expr) + childSlots(expr)
         group.flatMap(in.header.selfWithChildren).map(_.content).toSeq ++ aggregations.map(agg => OpaqueField(agg._1)))
     )
 
@@ -158,15 +169,18 @@ class FlatOperatorProducer(implicit context: FlatPlannerContext) {
   }
 
   def unwind(list: Expr, item: Var, in: FlatOperator): Unwind = {
+    //ToDO replace RecordHeaderSyntax.update -> this class no longer exists?
     val (header, _) = in.header.update(addContent(OpaqueField(item)))
 
     Unwind(list, item, in, header)
   }
 
   def project(it: ProjectedSlotContent, in: FlatOperator): FlatOperator = {
+    //ToDo see line 172
     val (newHeader, result) = in.header.update(addContent(it))
 
     result match {
+      //ToDo relational.impl.table.UpdateResult class no longer exists
       case _: Found[_]       => in
       case _: Replaced[_]    => Alias(it.expr, it.alias.get, in, newHeader)
       case _: Added[_]       => Project(it.expr, in, newHeader)
@@ -215,12 +229,15 @@ class FlatOperatorProducer(implicit context: FlatPlannerContext) {
     EmptyRecords(prev, header)
   }
 
-  def planStart(graph: LogicalGraph, fields: Set[Var]): Start = {
-    Start(graph, fields)
+  //def planStart(graph: LogicalGraph, fields: Set[Var]): Start = {
+  def planStart(graph: LogicalGraph): Start = {
+    //Start(graph, fields)
+    Start(graph)
   }
 
   def initVarExpand(source: Var, edgeList: Var, in: FlatOperator): InitVarExpand = {
     val endNodeId = FreshVariableNamer(edgeList.name + "endNode", CTNode)
+    //ToDo line 172
     val (header, _) = in.header.update(addContents(Seq(OpaqueField(edgeList), OpaqueField(endNodeId))))
 
     InitVarExpand(source, edgeList, endNodeId, in, header)
@@ -238,6 +255,7 @@ class FlatOperatorProducer(implicit context: FlatPlannerContext) {
                         targetOp: FlatOperator,
                         isExpandInto: Boolean): FlatOperator = {
 
+    //ToDo line 172
     val (initHeader, _) = sourceOp.in.header.update(addContent(OpaqueField(edgeList)))
     val header = initHeader ++ targetOp.header
 
@@ -249,9 +267,11 @@ class FlatOperatorProducer(implicit context: FlatPlannerContext) {
   }
 
   def planExistsSubQuery(expr: ExistsPatternExpr, lhs: FlatOperator, rhs: FlatOperator): FlatOperator = {
+    //ToDo line 172
     val (header, status) = lhs.header.update(addContent(ProjectedField(expr.targetField, expr)))
 
-    // TODO: record header should have sealed effects or be a map
+    //old todo TODO: record header should have sealed effects or be a map
+    //ToDo relational.impl.table.updateresult no longer exists
     status match {
       case _: Added[_]       => ExistsSubQuery(expr.targetField, lhs, rhs, header)
       case f: FailedToAdd[_] => throw RecordHeaderException(s"Slot already exists: ${f.conflict}")

@@ -58,6 +58,7 @@ class PhysicalPlanner[P <: PhysicalOperator[R, G, C], R <: CypherRecords, G <: P
       case flat.Select(fields, in, header) =>
 
         val selectExpressions = fields
+          //ToDo check how to replace selfwithChildren -> see FlatOperatorProduced
           .flatMap(header.selfWithChildren)
           .map(_.content.key)
           .distinct
@@ -67,6 +68,7 @@ class PhysicalPlanner[P <: PhysicalOperator[R, G, C], R <: CypherRecords, G <: P
       case flat.EmptyRecords(in, header) =>
         producer.planEmptyRecords(process(in), header)
 
+        //ToDO fix once the flat.Start works
       case flat.Start(graph, _) =>
         graph match {
           case g: LogicalCatalogGraph =>
@@ -97,6 +99,7 @@ class PhysicalPlanner[P <: PhysicalOperator[R, G, C], R <: CypherRecords, G <: P
 
       case flat.Unwind(list, item, in, header) =>
         val explodeExpr = Explode(list)(item.cypherType)
+        //ToDo see FlatOperatorProducer
         val withExplodedHeader = in.header.update(addContent(ProjectedExpr(explodeExpr)))._1
         val withExploded = producer.planProject(process(in), explodeExpr, withExplodedHeader)
         producer.planAlias(withExploded, explodeExpr, item, header)
@@ -106,6 +109,7 @@ class PhysicalPlanner[P <: PhysicalOperator[R, G, C], R <: CypherRecords, G <: P
       case flat.Aggregate(aggregations, group, in, header) => producer.planAggregate(process(in), group, aggregations, header)
 
       case flat.Filter(expr, in, header) => expr match {
+        //ToDO check why TrueLit cant be imported -> object/case class problems?
         case TrueLit() =>
           process(in) // optimise away filter
         case _ =>
@@ -236,9 +240,11 @@ class PhysicalPlanner[P <: PhysicalOperator[R, G, C], R <: CypherRecords, G <: P
     val rhsHeader = rhs.header
 
     // 1. Compute fields between left and right side
-    val commonFields = lhsHeader.slots.map(_.content).intersect(rhsHeader.slots.map(_.content))
+    //val commonFields = lhsHeader.slots.map(_.content).intersect(rhsHeader.slots.map(_.content))
+    val commonFields = lhsHeader.expressions.intersect(rhsHeader.expressions)
 
     val (joinSlots, otherCommonSlots) = commonFields.partition {
+          //ToDo check how to replace Opaquefield
       case _: OpaqueField => true
       case _ => false
     }
@@ -252,6 +258,7 @@ class PhysicalPlanner[P <: PhysicalOperator[R, G, C], R <: CypherRecords, G <: P
 
     // 2. Remove siblings of the join fields and other common fields
     val fieldsToRemove = joinFields
+      //ToDo check how to replace childSlots
       .flatMap(rhsHeader.childSlots)
       .map(_.content.key)
       .union(otherCommonFields)
@@ -261,6 +268,7 @@ class PhysicalPlanner[P <: PhysicalOperator[R, G, C], R <: CypherRecords, G <: P
     val rhsWithDropped = producer.planDrop(rhsData, fieldsToRemove, rhsHeaderWithDropped)
 
     // 3. Rename the join fields on the right hand side, in order to make them distinguishable after the join
+    //ToDo generateUniqueName can probably be replaced by generateConflictFreeName
     val joinFieldRenames = joinFields.map(f => f -> Var(rhsHeader.generateUniqueName)(f.cypherType)).toMap
 
     val rhsWithRenamedSlots = rhsHeaderWithDropped.slots.collect {

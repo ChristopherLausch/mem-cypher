@@ -64,10 +64,14 @@ class FlatPlanner extends DirectCompilationStage[LogicalOperator, FlatOperator, 
       case logical.Unwind(list, item, in, _) =>
         producer.unwind(list, item, process(in))
 
-      case logical.Project(expr, None, in, _) =>
+      //case logical.Project(expr, None, in, _) =>
+      case logical.Project((expr, None), in, _) =>
+        //ToDo replace ProjectedExpr
         producer.project(ProjectedExpr(expr), process(in))
 
-      case logical.Project(expr, Some(field), in, _) =>
+      //case logical.Project(expr, Some(field), in, _) =>
+      case logical.Project((expr, Some(field)), in, _) =>
+        //ToDo replace Projectedfield
         producer.project(ProjectedField(field, expr), process(in))
 
       case logical.Aggregate(aggregations, group, in, _) =>
@@ -85,15 +89,20 @@ class FlatPlanner extends DirectCompilationStage[LogicalOperator, FlatOperator, 
       case logical.EmptyRecords(fields, in, _) =>
         producer.planEmptyRecords(fields, process(in))
 
-      case logical.Start(graph, fields, _) =>
-        producer.planStart(graph, fields)
+      //case logical.Start(graph, fields, _) =>
+      case logical.Start(graph, _) =>
+        //producer.planStart(graph, fields)
+        producer.planStart(graph)
 
       case logical.FromGraph(graph, in, _) =>
         producer.planFromGraph(graph, process(in))
 
-      case logical.BoundedVarLengthExpand(source, edgeList, target, direction, lower, upper, sourceOp, targetOp, _) =>
+        //ToDO check if edgeType needs to be used
+     // case logical.BoundedVarLengthExpand(source, edgeList, target, direction, lower, upper, sourceOp, targetOp, _) =>
+      case logical.BoundedVarLengthExpand(source, edgeList, target, edgeType, direction, lower, upper, sourceOp, targetOp, _) =>
         val initVarExpand = producer.initVarExpand(source, edgeList, process(sourceOp))
-        val edgeScan = producer.varLengthEdgeScan(edgeList, producer.planStart(input.graph, Set.empty))
+        val edgeScan = producer.varLengthEdgeScan(edgeList, producer.planStart(input.graph))
+       // val edgeScan = producer.varLengthEdgeScan(edgeList, producer.planStart(input.graph, Set.empty))
         producer.boundedVarExpand(
           edgeScan.edge,
           edgeList,

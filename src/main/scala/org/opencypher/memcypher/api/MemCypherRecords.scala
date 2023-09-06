@@ -121,6 +121,7 @@ case class Embeddings(data: Seq[CypherMap]) {
                 val sum = values
                   .map(_.evaluate(inner))
                   .filterNot(_.isNull)
+                  //ToDo check why it gets the wrong type -> sum should probably be a cypherValue and not a string
                   .reduce(_ + _)
                 current.updated(to, sum)
 

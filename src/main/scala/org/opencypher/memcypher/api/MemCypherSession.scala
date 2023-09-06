@@ -52,6 +52,7 @@ sealed class MemCypherSession() extends CypherSession {
 
   self =>
 
+  //ToDo check why result type isnt overridden and leads to an error
   type Result <: MemCypherResult
 
   override val catalog: CypherCatalog = new CypherCatalog
@@ -94,6 +95,7 @@ sealed class MemCypherSession() extends CypherSession {
     val allParameters: CypherMap = parameters ++ extractedParameters
 
     val ir = time("IR translation")(IRBuilder(stmt)(
+      //ToDo update the .initialcall once everything else is fixed
       IRBuilderContext.initial(query, allParameters, semState, ambientGraph, qgnGenerator, catalog.listSources)))
 
     if (PrintIr.isSet) {
@@ -107,6 +109,7 @@ sealed class MemCypherSession() extends CypherSession {
       case other => throw NotImplementedException(s"No support for IR of type: ${other.getClass}")
     }
 
+    //ToDo update the LogicalPlannerContext call once everything else is fixed
     val logicalPlannerContext = LogicalPlannerContext(graph.schema, Set.empty, catalog.listSources)
     val logicalPlan = time("Logical planning")(logicalPlanner(cypherQuery)(logicalPlannerContext))
     val optimizedLogicalPlan = time("Logical optimization")(logicalOptimizer(logicalPlan)(logicalPlannerContext))

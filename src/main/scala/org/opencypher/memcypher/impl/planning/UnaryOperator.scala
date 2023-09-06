@@ -55,6 +55,7 @@ final case class Alias(in: MemOperator, aliases: Seq[(Expr, Var)], header: Recor
 
     val newData = aliases.foldLeft(data) {
       case (currentData, (expr, alias)) =>
+        //ToDo check how to replace slotFor
         val newColumn = header.slotFor(alias).columnName
         logger.info(s"Projecting $expr to alias column: $newColumn")
         currentData.project(expr, newColumn)(header, context)
@@ -89,6 +90,7 @@ case class Project(in: MemOperator, expr: Expr, header: RecordHeader) extends Un
         logger.info(s"Projecting $expr to key $one")
         data.project(expr, one)(header, context)
 
+        //ToDo isEmpty should work once headerNames.diff is fixed
       case seq if seq.isEmpty => data
     }
 
@@ -109,6 +111,7 @@ case class Distinct(in: MemOperator, fields: Set[Var]) extends UnaryOperator wit
 
   override def executeUnary(prev: MemPhysicalResult)(implicit context: MemRuntimeContext): MemPhysicalResult = {
     logger.info(s"Distinct on ${fields.mkString(",")}")
+    //ToDo check how to replace selfWithChildren
     val distinctFields = fields.flatMap(header.selfWithChildren).map(_.columnName)
     val newData = prev.records.data.distinct(distinctFields)(header, context)
     MemPhysicalResult(MemRecords.create(newData, header), prev.workingGraph, prev.workingGraphName)
@@ -145,7 +148,8 @@ case class Drop(
     val records = prev.records
     val dropColumns = dropFields
       .map(_.columnName)
-      .filter(records.columns.contains)
+      //.filter(records.columns.contains)
+      .filter(records.physicalColumns.contains)
       .toSet
     logger.info(s"Dropping columns: ${dropColumns.mkString("[", ", ", "]")}")
     val newData = if (dropColumns.isEmpty) records.data else records.data.drop(dropColumns)(header, context)
@@ -172,6 +176,7 @@ case class RemoveAliases(
 ) extends UnaryOperator {
 
   override def executeUnary(prev: MemPhysicalResult)(implicit context: MemRuntimeContext): MemPhysicalResult = {
+    //Todo check wrong types
     val renamings = aliases.map { case (l, r) => l.columnName -> r.columnName }.toMap
     logger.info(s"Renaming aliases: ${renamings.mkString("[", ", ", "]")}")
     val newData = prev.records.data.withColumnsRenamed(renamings)
