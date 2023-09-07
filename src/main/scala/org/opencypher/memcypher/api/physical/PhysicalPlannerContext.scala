@@ -29,8 +29,50 @@ package org.opencypher.memcypher.api.physical
 import org.opencypher.okapi.api.graph.{CypherSession, QualifiedGraphName}
 import org.opencypher.okapi.api.table.CypherRecords
 import org.opencypher.okapi.api.value.CypherValue.CypherMap
-import org.opencypher.okapi.ir.impl.QueryLocalCatalog
+import org.opencypher.okapi.ir.impl.{QueryCatalog, QueryLocalCatalog}
+import org.opencypher.okapi.relational.api.table.{FlatRelationalTable, RelationalCypherRecords}
 
+
+/**
+ * Represents a back-end specific context which is used by the [[org.opencypher.okapi.relational.impl.physical.PhysicalPlanner]].
+ *
+ * @tparam R backend-specific cypher records
+ */
+trait PhysicalPlannerContext[T<: FlatRelationalTable[T], P <: PhysicalOperator[T, R, _, _], R <: RelationalCypherRecords[T]] {
+  /**
+   * Refers to the session in which that query is executed.
+   *
+   * @return back-end specific cypher session
+   */
+  def session: CypherSession
+
+  /**
+   * Lookup function that resolves QGNs to property graphs.
+   *
+   * @return lookup function
+   */
+  def catalog: QueryCatalog
+
+  // TODO: Improve design
+  def constructedGraphPlans: collection.mutable.Map[QualifiedGraphName, P]
+
+  /**
+   * Initial records for physical planning.
+   *
+   * @return
+   */
+  def inputRecords: R
+
+  /**
+   * Query parameters
+   *
+   * @return query parameters
+   */
+  def parameters: CypherMap
+}
+
+
+/*
 /**
   * Represents a back-end specific context which is used by the [[org.opencypher.memcypher.impl.physical.PhysicalPlanner]].
   *
@@ -68,3 +110,4 @@ trait PhysicalPlannerContext[P <: PhysicalOperator[R, _, _], R <: CypherRecords]
     */
   def parameters: CypherMap
 }
+*/

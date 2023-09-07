@@ -28,7 +28,20 @@ package org.opencypher.memcypher.api.physical
 
 import org.opencypher.okapi.api.graph.PropertyGraph
 import org.opencypher.okapi.api.table.CypherRecords
+import org.opencypher.okapi.relational.api.table.{FlatRelationalTable, RelationalCypherRecords}
+trait PhysicalResult[T <: FlatRelationalTable[T], R <: RelationalCypherRecords[T], G <: PropertyGraph] {
 
+  /**
+   * Performs the given function on the underlying records and returns the updated records.
+   *
+   * @param f map function
+   * @return updated result
+   */
+  def mapRecordsWithDetails(f: R => R): PhysicalResult[T, R, G]
+
+}
+
+/*
 /**
   * Represents a back-end specific physical result that is being produced by a [[PhysicalOperator]].
   *
@@ -46,3 +59,4 @@ trait PhysicalResult[R <: CypherRecords, G <: PropertyGraph] {
   def mapRecordsWithDetails(f: R => R): PhysicalResult[R, G]
 
 }
+*/

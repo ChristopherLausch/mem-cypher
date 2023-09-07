@@ -40,6 +40,146 @@ import org.opencypher.okapi.relational.impl.table._
 
 import scala.annotation.tailrec
 
+
+class FlatOperatorProducer(implicit context: FlatPlannerContext) {
+
+  private implicit val typeVectorMonoid: Monoid[Vector[CypherType]] {
+    def empty: Vector[CypherType]
+
+    def combine(x: Vector[CypherType], y: Vector[CypherType]): Vector[CypherType]
+  } = new Monoid[Vector[CypherType]] {
+    override def empty: Vector[CypherType] = Vector.empty
+
+    override def combine(x: Vector[CypherType], y: Vector[CypherType]): Vector[CypherType] = x ++ y
+  }
+
+  def cartesianProduct(lhs: FlatOperator, rhs: FlatOperator): CartesianProduct = {
+    CartesianProduct(lhs, rhs)
+  }
+
+  def select(vars: List[Var], in: FlatOperator): Select = {
+    Select(vars, in)
+  }
+
+  def returnGraph(in: FlatOperator): ReturnGraph = {
+    ReturnGraph(in)
+  }
+
+  def filter(expr: Expr, in: FlatOperator): Filter = {
+    Filter(expr, in)
+  }
+
+  def distinct(fields: Set[Var], in: FlatOperator): Distinct = {
+    Distinct(fields, in)
+  }
+
+  /**
+   * This acts like a leaf operator even though it has an ancestor in the tree.
+   * That means that it will discard any incoming fields from the ancestor header (assumes it is empty)
+   */
+  def nodeScan(node: Var, prev: FlatOperator): NodeScan = {
+    NodeScan(node, prev)
+  }
+
+  def relationshipScan(rel: Var, prev: FlatOperator): RelationshipScan = {
+    RelationshipScan(rel, prev)
+  }
+
+  def aggregate(aggregations: Set[(Var, Aggregator)], group: Set[Var], in: FlatOperator): Aggregate = {
+    Aggregate(aggregations, group, in)
+  }
+
+  def unwind(list: Expr, item: Var, in: FlatOperator): WithColumn = {
+    val explodeExpr = Explode(list)(item.cypherType)
+    WithColumn(explodeExpr as item, in)
+  }
+
+  def project(projectExpr: (Expr, Option[Var]), in: FlatOperator): FlatOperator = {
+    Project(projectExpr, in)
+  }
+
+  def expand(
+              source: Var,
+              rel: Var,
+              direction: Direction,
+              target: Var,
+              schema: Schema,
+              sourceOp: FlatOperator,
+              targetOp: FlatOperator
+            ): FlatOperator = {
+    Expand(source, rel, direction, target, sourceOp, targetOp)
+  }
+
+  def expandInto(
+                  source: Var,
+                  rel: Var,
+                  target: Var,
+                  direction: Direction,
+                  schema: Schema,
+                  sourceOp: FlatOperator
+                ): FlatOperator = {
+    ExpandInto(source, rel, target, direction, sourceOp)
+  }
+
+  def valueJoin(
+                 lhs: FlatOperator,
+                 rhs: FlatOperator,
+                 predicates: Set[org.opencypher.okapi.ir.api.expr.Equals]
+               ): FlatOperator = {
+    ValueJoin(lhs, rhs, predicates)
+  }
+
+  def planFromGraph(graph: LogicalGraph, prev: FlatOperator): FromGraph = {
+    FromGraph(graph, prev)
+  }
+
+  def planEmptyRecords(fields: Set[Var], prev: FlatOperator): EmptyRecords = {
+    EmptyRecords(prev, fields)
+  }
+
+  def planStart(graph: LogicalGraph): Start = {
+    Start(graph)
+  }
+
+  def boundedVarExpand(
+                        source: Var,
+                        list: Var,
+                        edgeScan: Var,
+                        target: Var,
+                        direction: Direction,
+                        lower: Int,
+                        upper: Int,
+                        sourceOp: FlatOperator,
+                        edgeScanOp: FlatOperator,
+                        targetOp: FlatOperator,
+                        isExpandInto: Boolean
+                      ): FlatOperator = {
+    BoundedVarExpand(source, list, edgeScan, target, direction, lower, upper, sourceOp, edgeScanOp, targetOp, isExpandInto)
+  }
+
+  def planOptional(lhs: FlatOperator, rhs: FlatOperator): FlatOperator = {
+    Optional(lhs, rhs)
+  }
+
+  def planExistsSubQuery(expr: ExistsPatternExpr, lhs: FlatOperator, rhs: FlatOperator): FlatOperator = {
+    ExistsSubQuery(expr.targetField, lhs, rhs)
+  }
+
+  def orderBy(sortItems: Seq[SortItem], sourceOp: FlatOperator): FlatOperator = {
+    OrderBy(sortItems, sourceOp)
+  }
+
+  def skip(expr: Expr, sourceOp: FlatOperator): FlatOperator = {
+    Skip(expr, sourceOp)
+  }
+
+  def limit(expr: Expr, sourceOp: FlatOperator): FlatOperator = {
+    Limit(expr, sourceOp)
+  }
+}
+
+
+/*
 class FlatOperatorProducer(implicit context: FlatPlannerContext) {
 
   private implicit val typeVectorMonoid: Monoid[Vector[CypherType]] {
@@ -291,3 +431,4 @@ class FlatOperatorProducer(implicit context: FlatPlannerContext) {
     Limit(expr, sourceOp, sourceOp.header)
   }
 }
+*/
