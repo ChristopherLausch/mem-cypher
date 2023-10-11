@@ -26,12 +26,8 @@
  */
 package org.opencypher.memcypher.api.physical
 
-import org.opencypher.okapi.api.graph.{PropertyGraph, QualifiedGraphName}
+import org.opencypher.okapi.api.graph.PropertyGraph
 import org.opencypher.okapi.api.table.CypherRecords
-import org.opencypher.okapi.api.types.{CTInteger, CTNode, CTNodeOrNull, CTRelationship, CTRelationshipOrNull}
-import org.opencypher.okapi.impl.exception.IllegalArgumentException
-import org.opencypher.okapi.ir.api.expr.Var
-import org.opencypher.okapi.relational.api.table.{FlatRelationalTable, RelationalCypherRecords}
 import org.opencypher.okapi.relational.impl.table.RecordHeader
 
 /**
@@ -41,13 +37,25 @@ import org.opencypher.okapi.relational.impl.table.RecordHeader
   * @tparam G backend-specific property graph
   * @tparam C backend-specific runtime context
   */
-/**
- * Represents a backend-specific implementation of a physical query operation on the underlying data.
- *
- * @tparam R backend-specific cypher records
- * @tparam G backend-specific property graph
- * @tparam C backend-specific runtime context
- */
+trait PhysicalOperator[R <: CypherRecords, G <: PropertyGraph, C <: RuntimeContext[R, G]] {
+
+  /**
+    * The record header constructed by that operator.
+    *
+    * @return record header describing the output data
+    */
+  def header: RecordHeader
+
+  /**
+    * Triggers the execution of that operator.
+    *
+    * @param context backend-specific runtime context
+    * @return physical result
+    */
+  def execute(implicit context: C): PhysicalResult[R, G]
+
+}
+/*
 trait PhysicalOperator[T <: FlatRelationalTable[T], R <: RelationalCypherRecords[T], G <: PropertyGraph, C <: RuntimeContext[T, R, G]] {
 
   type TagStrategy = Map[QualifiedGraphName, Map[Int, Int]]
@@ -129,24 +137,4 @@ trait PhysicalOperator[T <: FlatRelationalTable[T], R <: RelationalCypherRecords
   def tagStrategy: TagStrategy = Map.empty
 
 }
-
-
-/*
-trait PhysicalOperator[R <: CypherRecords, G <: PropertyGraph, C <: RuntimeContext[R, G]] {
-
-  /**
-    * The record header constructed by that operator.
-    *
-    * @return record header describing the output data
-    */
-  def header: RecordHeader
-
-  /**
-    * Triggers the execution of that operator.
-    *
-    * @param context backend-specific runtime context
-    * @return physical result
-    */
-  def execute(implicit context: C): PhysicalResult[R, G]
-
-}*/
+*/

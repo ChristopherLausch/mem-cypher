@@ -29,7 +29,8 @@ package org.opencypher.memcypher.api.physical
 import org.opencypher.okapi.api.graph.{PropertyGraph, QualifiedGraphName}
 import org.opencypher.okapi.api.table.CypherRecords
 import org.opencypher.okapi.api.value.CypherValue.CypherMap
-import org.opencypher.okapi.relational.api.table.{FlatRelationalTable, RelationalCypherRecords}
+
+/*
 /**
  * Represents a back-end specific runtime context that is being used by [[PhysicalOperator]] implementations.
  *
@@ -52,7 +53,7 @@ trait RuntimeContext[T <: FlatRelationalTable[T], R <: RelationalCypherRecords[T
    */
   def parameters: CypherMap
 }
-/*
+*/
 /**
   * Represents a back-end specific runtime context that is being used by [[PhysicalOperator]] implementations.
   *
@@ -75,4 +76,3 @@ trait RuntimeContext[R <: CypherRecords, G <: PropertyGraph] {
     */
   def parameters: CypherMap
 }
-*/

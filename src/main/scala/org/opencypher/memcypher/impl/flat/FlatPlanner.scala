@@ -38,6 +38,113 @@ import org.opencypher.okapi.relational.impl.table.RecordHeader
 import scala.annotation.tailrec
 
 
+final case class FlatPlannerContext(parameters: CypherMap)
+
+class FlatPlanner extends DirectCompilationStage[LogicalOperator, FlatOperator, FlatPlannerContext] {
+
+  override def process(input: LogicalOperator)(implicit context: FlatPlannerContext): FlatOperator = {
+    val producer = new FlatOperatorProducer()
+
+    input match {
+
+      case logical.CartesianProduct(lhs, rhs, _) =>
+        producer.cartesianProduct(process(lhs), process(rhs))
+
+      case logical.Select(fields, in, _) =>
+        val withAliasesRemoved = if (fields.nonEmpty) {
+          producer.removeAliases(fields, process(in))
+        } else process(in)
+        producer.select(fields, withAliasesRemoved)
+
+      case logical.Filter(expr, in, _) =>
+        producer.filter(expr, process(in))
+
+      case logical.Distinct(fields, in, _) =>
+        producer.distinct(fields, process(in))
+
+      //ToDo logical.NodeScan class got replaced by logical.PatternScan.nodeScan function
+      case logical.NodeScan(node, in, _) =>
+        producer.nodeScan(node, process(in))
+
+      case logical.Unwind(list, item, in, _) =>
+        producer.unwind(list, item, process(in))
+
+      //case logical.Project(expr, None, in, _) =>
+      case logical.Project((expr, None), in, _) =>
+        //ToDo replace ProjectedExpr
+        producer.project(ProjectedExpr(expr), process(in))
+
+      //case logical.Project(expr, Some(field), in, _) =>
+      case logical.Project((expr, Some(field)), in, _) =>
+        //ToDo replace Projectedfield
+        producer.project(ProjectedField(field, expr), process(in))
+
+      case logical.Aggregate(aggregations, group, in, _) =>
+        producer.aggregate(aggregations, group, process(in))
+
+      case logical.Expand(source, rel, direction, target, sourceOp, targetOp, _) =>
+        producer.expand(source, rel, target, direction, input.graph.schema, process(sourceOp), process(targetOp))
+
+      case logical.ExpandInto(source, rel, target, direction, sourceOp, _) =>
+        producer.expandInto(source, rel, target, direction, input.graph.schema, process(sourceOp))
+
+      case logical.ValueJoin(lhs, rhs, predicates, _) =>
+        producer.valueJoin(process(lhs), process(rhs), predicates)
+
+      case logical.EmptyRecords(fields, in, _) =>
+        producer.planEmptyRecords(fields, process(in))
+
+      //case logical.Start(graph, fields, _) =>
+      case logical.Start(graph, _) =>
+        //producer.planStart(graph, fields)
+        producer.planStart(graph)
+
+      case logical.FromGraph(graph, in, _) =>
+        producer.planFromGraph(graph, process(in))
+
+      //ToDO check if edgeType needs to be used
+      // case logical.BoundedVarLengthExpand(source, edgeList, target, direction, lower, upper, sourceOp, targetOp, _) =>
+      case logical.BoundedVarLengthExpand(source, edgeList, target, edgeType, direction, lower, upper, sourceOp, targetOp, _) =>
+        val initVarExpand = producer.initVarExpand(source, edgeList, process(sourceOp))
+        val edgeScan = producer.varLengthEdgeScan(edgeList, producer.planStart(input.graph))
+        // val edgeScan = producer.varLengthEdgeScan(edgeList, producer.planStart(input.graph, Set.empty))
+        producer.boundedVarExpand(
+          edgeScan.edge,
+          edgeList,
+          target,
+          direction,
+          lower,
+          upper,
+          initVarExpand,
+          edgeScan,
+          process(targetOp),
+          isExpandInto = sourceOp == targetOp)
+
+      case logical.Optional(lhs, rhs, _) =>
+        producer.planOptional(process(lhs), process(rhs))
+
+      case logical.ExistsSubQuery(expr, lhs, rhs, _) =>
+        producer.planExistsSubQuery(expr, process(lhs), process(rhs))
+
+      case logical.OrderBy(sortListItems, sourceOp, _) =>
+        producer.orderBy(sortListItems, process(sourceOp))
+
+      case logical.Skip(expr, sourceOp, _) =>
+        producer.skip(expr, process(sourceOp))
+
+      case logical.Limit(expr, sourceOp, _) =>
+        producer.limit(expr, process(sourceOp))
+
+      case logical.ReturnGraph(in, _) =>
+        producer.returnGraph(process(in))
+
+      case x =>
+        throw NotImplementedException(s"Flat planning not implemented for $x")
+    }
+  }
+}
+
+/*
 final case class FlatPlannerContext(parameters: CypherMap, drivingTableHeader: RecordHeader)
 
 class FlatPlanner extends DirectCompilationStage[LogicalOperator, FlatOperator, FlatPlannerContext] {
@@ -132,113 +239,6 @@ class FlatPlanner extends DirectCompilationStage[LogicalOperator, FlatOperator, 
       case l: CTList => relTypeFromList(l.elementType)
       case r: CTRelationship => r.types
       case _ => throw IllegalStateException(s"Required CTList or CTRelationship, but got $t")
-    }
-  }
-}
-
-/*
-final case class FlatPlannerContext(parameters: CypherMap)
-
-class FlatPlanner extends DirectCompilationStage[LogicalOperator, FlatOperator, FlatPlannerContext] {
-
-  override def process(input: LogicalOperator)(implicit context: FlatPlannerContext): FlatOperator = {
-    val producer = new FlatOperatorProducer()
-
-    input match {
-
-      case logical.CartesianProduct(lhs, rhs, _) =>
-        producer.cartesianProduct(process(lhs), process(rhs))
-
-      case logical.Select(fields, in, _) =>
-        val withAliasesRemoved = if (fields.nonEmpty) {
-          producer.removeAliases(fields, process(in))
-        } else process(in)
-        producer.select(fields, withAliasesRemoved)
-
-      case logical.Filter(expr, in, _) =>
-        producer.filter(expr, process(in))
-
-      case logical.Distinct(fields, in, _) =>
-        producer.distinct(fields, process(in))
-
-        //ToDo logical.NodeScan class got replaced by logical.PatternScan.nodeScan function
-      case logical.NodeScan(node, in, _) =>
-        producer.nodeScan(node, process(in))
-
-      case logical.Unwind(list, item, in, _) =>
-        producer.unwind(list, item, process(in))
-
-      //case logical.Project(expr, None, in, _) =>
-      case logical.Project((expr, None), in, _) =>
-        //ToDo replace ProjectedExpr
-        producer.project(ProjectedExpr(expr), process(in))
-
-      //case logical.Project(expr, Some(field), in, _) =>
-      case logical.Project((expr, Some(field)), in, _) =>
-        //ToDo replace Projectedfield
-        producer.project(ProjectedField(field, expr), process(in))
-
-      case logical.Aggregate(aggregations, group, in, _) =>
-        producer.aggregate(aggregations, group, process(in))
-
-      case logical.Expand(source, rel, direction, target, sourceOp, targetOp, _) =>
-        producer.expand(source, rel, target, direction, input.graph.schema, process(sourceOp), process(targetOp))
-
-      case logical.ExpandInto(source, rel, target, direction, sourceOp, _) =>
-        producer.expandInto(source, rel, target, direction, input.graph.schema, process(sourceOp))
-
-      case logical.ValueJoin(lhs, rhs, predicates, _) =>
-        producer.valueJoin(process(lhs), process(rhs), predicates)
-
-      case logical.EmptyRecords(fields, in, _) =>
-        producer.planEmptyRecords(fields, process(in))
-
-      //case logical.Start(graph, fields, _) =>
-      case logical.Start(graph, _) =>
-        //producer.planStart(graph, fields)
-        producer.planStart(graph)
-
-      case logical.FromGraph(graph, in, _) =>
-        producer.planFromGraph(graph, process(in))
-
-        //ToDO check if edgeType needs to be used
-     // case logical.BoundedVarLengthExpand(source, edgeList, target, direction, lower, upper, sourceOp, targetOp, _) =>
-      case logical.BoundedVarLengthExpand(source, edgeList, target, edgeType, direction, lower, upper, sourceOp, targetOp, _) =>
-        val initVarExpand = producer.initVarExpand(source, edgeList, process(sourceOp))
-        val edgeScan = producer.varLengthEdgeScan(edgeList, producer.planStart(input.graph))
-       // val edgeScan = producer.varLengthEdgeScan(edgeList, producer.planStart(input.graph, Set.empty))
-        producer.boundedVarExpand(
-          edgeScan.edge,
-          edgeList,
-          target,
-          direction,
-          lower,
-          upper,
-          initVarExpand,
-          edgeScan,
-          process(targetOp),
-          isExpandInto = sourceOp == targetOp)
-
-      case logical.Optional(lhs, rhs, _) =>
-        producer.planOptional(process(lhs), process(rhs))
-
-      case logical.ExistsSubQuery(expr, lhs, rhs, _) =>
-        producer.planExistsSubQuery(expr, process(lhs), process(rhs))
-
-      case logical.OrderBy(sortListItems, sourceOp, _) =>
-        producer.orderBy(sortListItems, process(sourceOp))
-
-      case logical.Skip(expr, sourceOp, _) =>
-        producer.skip(expr, process(sourceOp))
-
-      case logical.Limit(expr, sourceOp, _) =>
-        producer.limit(expr, process(sourceOp))
-
-      case logical.ReturnGraph(in, _) =>
-        producer.returnGraph(process(in))
-
-      case x =>
-        throw NotImplementedException(s"Flat planning not implemented for $x")
     }
   }
 }
